@@ -5,7 +5,6 @@
     "port": 22,
     "username": "root",
     "password": "root"
-  }
   "commands": {
       "update": {
         "name": "Update System",
@@ -16,4 +15,5 @@
         "command": "systemctl status ssh"
       }
     }
+  }
 }
