@@ -3,4 +3,5 @@
 __pycache__/
 *.pyc
 .env
-commands.json
+config/commands.json
+config/ssh_servers.json
