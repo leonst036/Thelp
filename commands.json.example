@@ -1,0 +1,6 @@
+{
+  "Hello World": {
+    "name": "Hello World",
+    "command": "echo Hello World"
+  }
+}

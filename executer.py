@@ -2,6 +2,8 @@ import subprocess
 
 
 def execute(command):
-    process = subprocess.run(command, capture_output=True, text=True, shell=True)
-    for line in process.stdout.splitlines():
-        print(f"Output: {line}")
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+    for line in iter(process.stdout.readline, ''):
+        if line:
+            print(f"Output: {line.rstrip()}")
+    process.wait()
