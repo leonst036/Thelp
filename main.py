@@ -12,7 +12,13 @@ width = int(os.getenv("WIDTH") or 80)
 
 parser = argparse.ArgumentParser(description="Thelp CLI")
 parser.add_argument("--server", type=str, help="Directly connect to a specified server by name or key")
+parser.add_argument("--gui", action="store_true", help="Launch the Graphical User Interface")
 args = parser.parse_args()
+
+if args.gui:
+    import gui
+    gui.launch()
+    sys.exit(0)
 
 if args.server:
     server_data = jsonParser.get_server_by_name_or_key(args.server)
@@ -63,7 +69,7 @@ try:
         selection_index = int(selection) - 1
         selected_command = jsonParser.get_command_by_index(selection_index)
         if selected_command:
-            executer.execute(selected_command)
+            executer.execute(selected_command, width)
         else:
             print("Invalid selection")
 except ValueError:

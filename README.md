@@ -15,6 +15,8 @@
 - Manage commands without hardcoding them into the application
 - Connect to SSH servers
 - Display commands in a clean, formatted box interface
+- Launch an optional Graphical User Interface (GUI)
+- Use dynamic input prompts (`{input}`) within commands
 
 ## Installation
 
@@ -50,6 +52,12 @@ python main.py
 ```
 
 This will display an interactive menu with all available commands. Select a command by entering its number, or enter `f` to connect to a server.
+
+**Graphical User Interface (GUI):**
+You can launch the visual application using the `--gui` argument:
+```bash
+python main.py --gui
+```
 
 **Direct Server Connection:**
 You can also bypass the menu and connect directly to a server by providing its key or name using the `--server` argument:
@@ -124,6 +132,7 @@ Edit `config/ssh_servers.json` and add your servers in the following format:
 ```
 Thelp/
 ├── main.py              # Entry point of the application
+├── gui.py               # GUI implementation using customtkinter
 ├── ui.py                # UI utilities for displaying formatted boxes
 ├── executer.py          # Command execution module
 ├── jsonParser.py        # JSON configuration parser
@@ -153,6 +162,9 @@ Thelp/
 - `bcrypt==5.0.0`
 - `cffi==2.0.0`
 - `cryptography==46.0.6`
+- `customtkinter==5.2.2`
+- `darkdetect==0.8.0`
+- `packaging==26.0`
 - `paramiko==4.0.0`
 - `pycparser==3.0`
 - `PyNaCl==1.6.2`
@@ -164,6 +176,5 @@ All dependencies are listed in `requirements.txt` and will be installed with `pi
 
 - Server monitoring capabilities
 - Command history tracking
-- Add a Graphical UI (can be activated optionally)
 - Category sorting of commands
 ## More Features soon

@@ -78,12 +78,33 @@ def handle_server_commands(client, server_data, width):
         command_str = jsonParser.get_server_command_by_index(server_data, selection_index)
         
         if command_str:
-            print(f"Executing '{command_str}' on {server_data['name']}...")
+            if "{input}" in command_str:
+                user_input = input("Enter input for command: ")
+                command_str = command_str.replace("{input}", user_input)
+
+            ui.clear_terminal()
+            ui.create_box(width, "Execution Output", f" {server_data['name']}─")
+
             stdin, stdout, stderr = client.exec_command(command_str)
             for line in stdout:
-                print(f"Output: {line.strip()}")
+                cleaned = line.strip().replace('\t', '    ')
+                max_len = width - 4
+                if not cleaned:
+                    ui.new_column(width, " ", "")
+                    continue
+                for i in range(0, len(cleaned), max_len):
+                    ui.new_column(width, f" {cleaned[i:i+max_len]}", "")
+
             for line in stderr:
-                print(f"Error: {line.strip()}")
+                cleaned = line.strip().replace('\t', '    ')
+                max_len = width - 4
+                if not cleaned:
+                    ui.new_column(width, " ", "")
+                    continue
+                for i in range(0, len(cleaned), max_len):
+                    ui.new_column(width, f" [ERROR] {cleaned[i:i+max_len]}", "")
+
+            ui.close_box(width)
         else:
             print("Invalid command selection")
     except ValueError:
