@@ -1,0 +1,7 @@
+bcrypt==5.0.0
+cffi==2.0.0
+cryptography==46.0.6
+paramiko==4.0.0
+pycparser==3.0
+PyNaCl==1.6.2
+python-dotenv==1.2.2
