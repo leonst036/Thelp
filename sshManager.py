@@ -1,12 +1,14 @@
 import paramiko
 import os
+import shlex
 import jsonParser
 import ui
 
 def connect_ssh_server(host, port, username, password):
     """Connects to a server"""
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.RejectPolicy())
     try:
         client.connect(host, username=username, password=password, port=port)
         return client
@@ -80,7 +82,7 @@ def handle_server_commands(client, server_data, width):
         if command_str:
             if "{input}" in command_str:
                 user_input = input("Enter input for command: ")
-                command_str = command_str.replace("{input}", user_input)
+                command_str = command_str.replace("{input}", shlex.quote(user_input))
 
             ui.clear_terminal()
             ui.create_box(width, "Execution Output", f" {server_data['name']}─")

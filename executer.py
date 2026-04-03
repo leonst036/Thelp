@@ -1,11 +1,12 @@
 import subprocess
+import shlex
 import ui
 
 
 def execute(command, width):
     if "{input}" in command:
         user_input = input("Enter input for command: ")
-        command = command.replace("{input}", user_input)
+        command = command.replace("{input}", shlex.quote(user_input))
 
     ui.clear_terminal()
     ui.create_box(width, "Execution Output", "")

@@ -1,7 +1,12 @@
 import json
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+COMMANDS_PATH = os.path.join(BASE_DIR, "config", "commands.json")
+SERVERS_PATH = os.path.join(BASE_DIR, "config", "ssh_servers.json")
 
 def parse_commands():
-    with open("config/commands.json", "r", encoding="utf-8") as f:
+    with open(COMMANDS_PATH, "r", encoding="utf-8") as f:
         commands = json.load(f)
     return commands
 
@@ -23,7 +28,7 @@ def get_total_commands():
     return len(parse_commands())
 
 def parse_servers():
-    with open("config/ssh_servers.json", "r", encoding="utf-8") as f:
+    with open(SERVERS_PATH, "r", encoding="utf-8") as f:
         servers = json.load(f)
     return servers
 
