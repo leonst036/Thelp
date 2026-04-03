@@ -122,6 +122,10 @@ Edit `config/ssh_servers.json` and add your servers in the following format:
 }
 ```
 
+**SSH host key verification:**
+- The app rejects unknown SSH host keys for security.
+- Add server host keys to your `~/.ssh/known_hosts` before connecting (for example, by connecting once with `ssh` or using `ssh-keyscan`).
+
 ### Configuration
 
 **Environment Variables:**
