@@ -51,6 +51,12 @@ python main.py
 
 This will display an interactive menu with all available commands. Select a command by entering its number, or enter `f` to connect to a server.
 
+**Direct Server Connection:**
+You can also bypass the menu and connect directly to a server by providing its key or name using the `--server` argument:
+```bash
+python main.py --server "Server Name"
+```
+
 ### Adding Commands
 
 Edit `config/commands.json` and add your commands in the following format:
@@ -159,3 +165,5 @@ All dependencies are listed in `requirements.txt` and will be installed with `pi
 - Server monitoring capabilities
 - Command history tracking
 - Add a Graphical UI (can be activated optionally)
+- Category sorting of commands
+## More Features soon

@@ -51,3 +51,19 @@ def get_server_command_by_index(server_data, index):
 def get_total_servers():
     """Returns the total number of servers"""
     return len(parse_servers())
+
+def get_server_by_name_or_key(name_or_key):
+    """Retrieves a server by its key or display name"""
+    try:
+        servers = parse_servers()
+    except Exception:
+        return None
+
+    if name_or_key in servers:
+        return servers[name_or_key]
+
+    for key, data in servers.items():
+        if data.get('name') == name_or_key:
+            return data
+
+    return None

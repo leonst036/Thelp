@@ -4,9 +4,34 @@ import os
 import dotenv
 import jsonParser
 import sshManager
+import argparse
+import sys
 
 dotenv.load_dotenv()
-width = int(os.getenv("WIDTH"))
+width = int(os.getenv("WIDTH") or 80)
+
+parser = argparse.ArgumentParser(description="Thelp CLI")
+parser.add_argument("--server", type=str, help="Directly connect to a specified server by name or key")
+args = parser.parse_args()
+
+if args.server:
+    server_data = jsonParser.get_server_by_name_or_key(args.server)
+    if not server_data:
+        print(f"Server '{args.server}' not found.")
+        sys.exit(1)
+
+    client = sshManager.connect_ssh_server(
+        server_data['host'],
+        server_data['port'],
+        server_data['username'],
+        server_data['password']
+    )
+    if client:
+        sshManager.handle_server_commands(client, server_data, width)
+    else:
+        sys.exit(1)
+    sys.exit(0)
+
 ui.clear_terminal()
 ui.create_box(width, "Welcome to Thelp", " F: Connect to a Server─")
 
