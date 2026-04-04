@@ -50,10 +50,72 @@ def select_and_connect_server(width):
                 handle_server_commands(client, selected_server, width)
         else:
             print("Invalid server selection")
+    except ValueError:
+        print("Invalid server selection")
+
+def select_and_monitor_server(width):
+    """Handle server selection, SSH connection and monitoring"""
+    if not os.path.isfile("config/ssh_servers.json"):
+        print("No servers found. Please add a server in ssh_servers.json")
+        return None
+    
+    server_names = jsonParser.get_server_names()
+    if not server_names:
+        print("No servers configured")
+        return None
+    
+    server_selection = input("Select a server to monitor: ").lower()
+    try:
+        server_index = int(server_selection) - 1
+        selected_server = jsonParser.get_server_by_index(server_index)
+        
+        if selected_server:
+            print(f"Connecting to {selected_server['name']} for monitoring...")
+            client = connect_ssh_server(
+                selected_server['host'],
+                selected_server['port'],
+                selected_server['username'],
+                selected_server['password']
+            )
+            if client:
+                monitor_server(client, selected_server, width)
+        else:
+            print("Invalid server selection")
             return None
     except ValueError:
         print("Invalid server selection")
         return None
+
+def monitor_server(client, server_data, width):
+    """Monitor server resources"""
+    import time
+    try:
+        while True:
+            ui.clear_terminal()
+            ui.create_box(width, f"Monitoring {server_data.get('name', 'Server')}", " Ctrl+C to exit─")
+            
+            # Get CPU usage
+            stdin, stdout, stderr = client.exec_command("top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1\"%\"}'")
+            cpu_usage = stdout.read().decode().strip()
+            
+            # Get RAM usage
+            stdin, stdout, stderr = client.exec_command("free -m | awk 'NR==2{printf \"%.2f%%\", $3*100/$2 }'")
+            ram_usage = stdout.read().decode().strip()
+            
+            # Get Disk usage
+            stdin, stdout, stderr = client.exec_command("df -h / | awk '$NF==\"/\"{printf \"%s\", $5}'")
+            disk_usage = stdout.read().decode().strip()
+            
+            ui.new_column(width, f" CPU Usage:  {cpu_usage}", "")
+            ui.new_column(width, f" RAM Usage:  {ram_usage}", "")
+            ui.new_column(width, f" Disk Usage: {disk_usage}", "")
+            ui.close_box(width)
+            
+            time.sleep(2)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        client.close()
 
 def handle_server_commands(client, server_data, width):
     """Display and handle commands execution for the connected server"""

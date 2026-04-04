@@ -166,9 +166,15 @@ class ThelpApp(ctk.CTk):
         try:
             server_names = jsonParser.get_server_names()
             for i, name in enumerate(server_names):
-                btn = ctk.CTkButton(self.list_frame, text=name, command=lambda idx=i: self.show_server_commands(idx))
-                btn.grid(row=i, column=0, padx=10, pady=5, sticky="ew")
-                self.list_frame.grid_columnconfigure(0, weight=1)
+                row_frame = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+                row_frame.grid(row=i, column=0, sticky="ew", pady=2)
+                row_frame.grid_columnconfigure(1, weight=1)
+
+                btn = ctk.CTkButton(row_frame, text=name, command=lambda idx=i: self.show_server_commands(idx))
+                btn.grid(row=0, column=1, padx=(5, 5), pady=3, sticky="ew")
+
+                monitor_btn = ctk.CTkButton(row_frame, text="Monitor", width=60, fg_color="blue", command=lambda idx=i: self.monitor_gui_server(idx))
+                monitor_btn.grid(row=0, column=2, padx=(5, 10), pady=3, sticky="e")
 
             # Add new server button
             add_btn = ctk.CTkButton(self.list_frame, text="+ Add Server", fg_color="green", hover_color="darkgreen", command=self.add_new_server)
@@ -283,6 +289,48 @@ class ThelpApp(ctk.CTk):
     def get_input(self, prompt="Enter input:"):
         dialog = ctk.CTkInputDialog(text=prompt, title="Input Required")
         return dialog.get_input()
+
+    def monitor_gui_server(self, server_index):
+        server = jsonParser.get_server_by_index(server_index)
+        if not server:
+            return
+            
+        self.log(f"--- Starting monitor for {server.get('name')} ---")
+        
+        def run_monitor():
+            client = sshManager.connect_ssh_server(
+                server['host'],
+                server['port'],
+                server['username'],
+                server['password']
+            )
+            if not client:
+                self.log("Connection failed.")
+                return
+
+            self.log(f"Connected. Monitoring {server.get('name')} (Ctrl+C in terminal or close to stop, though it runs in output box until app close or error)...")
+            # In GUI we might do a few iterations or we could keep it running but it shouldn't block.
+            # A simple loop reading stats
+            import time
+            from paramiko.ssh_exception import SSHException
+            try:
+                # Run for 10 iterations to prevent infinite background threads if user leaves
+                for _ in range(20):
+                    stdin, stdout, stderr = client.exec_command("top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1\"%\"}'")
+                    cpu_usage = stdout.read().decode().strip()
+                    
+                    stdin, stdout, stderr = client.exec_command("free -m | awk 'NR==2{printf \"%.2f%%\", $3*100/$2 }'")
+                    ram_usage = stdout.read().decode().strip()
+                    
+                    self.log(f"[Monitor {server.get('name')}] CPU: {cpu_usage} | RAM: {ram_usage}")
+                    time.sleep(3)
+                self.log(f"--- Finished monitoring {server.get('name')} (auto-stopped) ---")
+            except SSHException as e:
+                self.log(f"Monitor connection error: {e}")
+            finally:
+                client.close()
+
+        threading.Thread(target=run_monitor, daemon=True).start()
 
     def run_local_command(self, index):
         command = jsonParser.get_command_by_index(index)

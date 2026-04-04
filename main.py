@@ -43,7 +43,7 @@ if args.server:
     sys.exit(0)
 
 ui.clear_terminal()
-ui.create_box(width, "Welcome to Thelp", " F: Connect to a Server─")
+ui.create_box(width, "Welcome to Thelp", " F: Connect | M: Monitor─")
 
 # Detect if the commands.json file exists, if not display a message and exit
 if not os.path.isfile("config/commands.json"):
@@ -69,6 +69,15 @@ try:
             server_names = jsonParser.get_server_names()
             ui.display_server_selection(width, server_names)
             sshManager.select_and_connect_server(width)
+    elif selection == "m":
+        # Monitor a server
+        ui.clear_terminal()
+        if not os.path.isfile("config/ssh_servers.json"):
+            ui.display_no_servers(width)
+        else:
+            server_names = jsonParser.get_server_names()
+            ui.display_server_selection(width, server_names)
+            sshManager.select_and_monitor_server(width)
     else:
         selection_index = int(selection) - 1
         selected_command = jsonParser.get_command_by_index(selection_index)
