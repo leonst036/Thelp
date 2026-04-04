@@ -162,17 +162,6 @@ Thelp/
 
 - Python 3.7+
 
-**Dependencies:**
-- `bcrypt==5.0.0`
-- `cffi==2.0.0`
-- `cryptography==46.0.6`
-- `customtkinter==5.2.2`
-- `darkdetect==0.8.0`
-- `packaging==26.0`
-- `paramiko==4.0.0`
-- `pycparser==3.0`
-- `PyNaCl==1.6.2`
-- `python-dotenv==1.2.2`
 
 All dependencies are listed in `requirements.txt` and will be installed with `pip install -r requirements.txt`
 
