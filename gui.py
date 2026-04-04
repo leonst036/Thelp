@@ -99,11 +99,66 @@ class ThelpApp(ctk.CTk):
         try:
             command_names = jsonParser.get_command_names()
             for i, name in enumerate(command_names):
-                btn = ctk.CTkButton(self.list_frame, text=name, command=lambda idx=i: self.run_local_command(idx))
-                btn.grid(row=i, column=0, padx=10, pady=5, sticky="ew")
-                self.list_frame.grid_columnconfigure(0, weight=1)
+                row_frame = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+                row_frame.grid(row=i, column=0, sticky="ew", pady=2)
+                row_frame.grid_columnconfigure(1, weight=1)
+
+                edit_btn = ctk.CTkButton(row_frame, text="✎", width=30, command=lambda idx=i: self.edit_local_command(idx))
+                edit_btn.grid(row=0, column=0, padx=(10, 5), pady=3, sticky="w")
+
+                btn = ctk.CTkButton(row_frame, text=name, command=lambda idx=i: self.run_local_command(idx))
+                btn.grid(row=0, column=1, padx=(5, 10), pady=3, sticky="ew")
+
+            self.list_frame.grid_columnconfigure(0, weight=1)
+                
+            # Add new command button
+            add_btn = ctk.CTkButton(self.list_frame, text="+ Add Command", fg_color="green", hover_color="darkgreen", command=self.add_new_local_command)
+            add_btn.grid(row=len(command_names), column=0, padx=10, pady=10, sticky="ew")
         except Exception as e:
             self.log(f"No commands found or error: {e}")
+
+    def edit_local_command(self, index):
+        cmd_data = jsonParser.get_full_command_by_index(index)
+        if not cmd_data:
+            return
+
+        old_name = cmd_data.get("name", "")
+        old_cmd = cmd_data.get("command", "")
+
+        name = self.get_input(f"Enter new name (leave empty to keep: '{old_name}')")
+        if name is None:
+            return
+        if name.strip() == "":
+            name = old_name
+            
+        command = self.get_input(f"Enter new command (leave empty to keep: '{old_cmd}')")
+        if command is None:
+            return
+        if command.strip() == "":
+            command = old_cmd
+            
+        try:
+            jsonParser.update_command(index, name, command)
+            self.log(f"> Updated command: {name}")
+            self.show_local_commands()
+        except Exception as e:
+            self.log(f"> Failed to update command: {e}")
+
+    def add_new_local_command(self):
+        name = self.get_input("Enter new command name:")
+        if not name:
+            return
+
+        command = self.get_input("Enter the shell command (optionally include {input}):")
+        if not command:
+            return
+
+        try:
+            jsonParser.add_command(name, command)
+            self.log(f"> Added new command: {name}")
+            self.show_local_commands()
+        except Exception as e:
+            self.log(f"> Failed to add command: {e}")
 
     def show_servers(self):
         self.clear_list()
@@ -114,8 +169,43 @@ class ThelpApp(ctk.CTk):
                 btn = ctk.CTkButton(self.list_frame, text=name, command=lambda idx=i: self.show_server_commands(idx))
                 btn.grid(row=i, column=0, padx=10, pady=5, sticky="ew")
                 self.list_frame.grid_columnconfigure(0, weight=1)
+
+            # Add new server button
+            add_btn = ctk.CTkButton(self.list_frame, text="+ Add Server", fg_color="green", hover_color="darkgreen", command=self.add_new_server)
+            add_btn.grid(row=len(server_names), column=0, padx=10, pady=10, sticky="ew")
         except Exception as e:
             self.log(f"No servers found or error: {e}")
+
+    def add_new_server(self):
+        name = self.get_input("Enter server display name:")
+        if not name:
+            return
+
+        host = self.get_input("Enter host/IP address:")
+        if not host:
+            return
+
+        port_str = self.get_input("Enter port (default 22):")
+        port = 22
+        if port_str:
+            try:
+                port = int(port_str)
+            except ValueError:
+                self.log("> Invalid port. Using default 22.")
+
+        username = self.get_input("Enter username:")
+        if not username:
+            return
+
+        password = self.get_input("Enter password (leave empty if using key/agent):")
+        # Let's allow empty password string
+
+        try:
+            jsonParser.add_server(name, host, username, password or "", port)
+            self.log(f"> Added new server: {name}")
+            self.show_servers()
+        except Exception as e:
+            self.log(f"> Failed to add server: {e}")
 
     def show_server_commands(self, server_index):
         self.clear_list()
@@ -123,19 +213,72 @@ class ThelpApp(ctk.CTk):
         self.log(f"--- Commands for {server.get('name', 'Server')} ---")
 
         commands = server.get('commands', {})
-        if not commands:
-            self.log("No commands found for this server.")
-            return
-
         command_keys = list(commands.keys())
         for i, key in enumerate(command_keys):
             cmd = commands[key]
             name = cmd.get("name", key)
-            btn = ctk.CTkButton(self.list_frame, text=name, command=lambda idx=i, s=server: self.run_server_command(s, idx))
-            btn.grid(row=i, column=0, padx=10, pady=5, sticky="ew")
+            
+            row_frame = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+            row_frame.grid(row=i, column=0, sticky="ew", pady=2)
+            row_frame.grid_columnconfigure(1, weight=1)
+
+            edit_btn = ctk.CTkButton(row_frame, text="✎", width=30, command=lambda idx=i, s_idx=server_index: self.edit_server_command(s_idx, idx))
+            edit_btn.grid(row=0, column=0, padx=(10, 5), pady=3, sticky="w")
+
+            btn = ctk.CTkButton(row_frame, text=name, command=lambda idx=i, s=server: self.run_server_command(s, idx))
+            btn.grid(row=0, column=1, padx=(5, 10), pady=3, sticky="ew")
+
+        # Add new command button
+        add_btn = ctk.CTkButton(self.list_frame, text="+ Add Command", fg_color="green", hover_color="darkgreen", command=lambda s_idx=server_index: self.add_new_server_command(s_idx))
+        add_btn.grid(row=len(command_keys), column=0, padx=10, pady=(10, 5), sticky="ew")
 
         back_btn = ctk.CTkButton(self.list_frame, text="← Back to Servers", fg_color="gray", command=self.show_servers)
-        back_btn.grid(row=len(command_keys), column=0, padx=10, pady=10, sticky="ew")
+        back_btn.grid(row=len(command_keys)+1, column=0, padx=10, pady=(5, 10), sticky="ew")
+        
+        self.list_frame.grid_columnconfigure(0, weight=1)
+
+    def edit_server_command(self, server_index, cmd_index):
+        cmd_data = jsonParser.get_full_server_command_by_index(server_index, cmd_index)
+        if not cmd_data:
+            return
+
+        old_name = cmd_data.get("name", "")
+        old_cmd = cmd_data.get("command", "")
+
+        name = self.get_input(f"Enter new name (leave empty to keep: '{old_name}')")
+        if name is None:
+            return
+        if name.strip() == "":
+            name = old_name
+            
+        command = self.get_input(f"Enter new command (leave empty to keep: '{old_cmd}')")
+        if command is None:
+            return
+        if command.strip() == "":
+            command = old_cmd
+            
+        try:
+            jsonParser.update_server_command(server_index, cmd_index, name, command)
+            self.log(f"> Updated server command: {name}")
+            self.show_server_commands(server_index)
+        except Exception as e:
+            self.log(f"> Failed to update server command: {e}")
+
+    def add_new_server_command(self, server_index):
+        name = self.get_input("Enter new command name:")
+        if not name:
+            return
+
+        command = self.get_input("Enter the shell command (optionally include {input}):")
+        if not command:
+            return
+
+        try:
+            jsonParser.add_server_command(server_index, name, command)
+            self.log(f"> Added new server command: {name}")
+            self.show_server_commands(server_index)
+        except Exception as e:
+            self.log(f"> Failed to add server command: {e}")
 
     def get_input(self, prompt="Enter input:"):
         dialog = ctk.CTkInputDialog(text=prompt, title="Input Required")
