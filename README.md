@@ -5,7 +5,7 @@
 - [x] Add commands without hardcoding
 - [x] Add a way to edit commands
 - [x] Add a way to connect to a server
-- [ ] Add a way to monitor a server
+- [x] Add a way to monitor a server
 
 ## Features
 
@@ -31,7 +31,7 @@ cd Thelp
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
-
+    
 3. Install dependencies (if any):
 ```bash
 pip install -r requirements.txt
@@ -181,4 +181,5 @@ All dependencies are listed in `requirements.txt` and will be installed with `pi
 - Server monitoring capabilities
 - Command history tracking
 - Category sorting of commands
+- Full SSH commander
 ## More Features soon

@@ -37,21 +37,23 @@ def select_and_connect_server(width):
     try:
         server_index = int(server_selection) - 1
         selected_server = jsonParser.get_server_by_index(server_index)
-        
-        if selected_server:
-            print(f"Connecting to {selected_server['name']}...")
-            client = connect_ssh_server(
-                selected_server['host'],
-                selected_server['port'],
-                selected_server['username'],
-                selected_server['password']
-            )
-            if client:
-                handle_server_commands(client, selected_server, width)
-        else:
-            print("Invalid server selection")
     except ValueError:
         print("Invalid server selection")
+        return None
+        
+    if selected_server:
+        print(f"Connecting to {selected_server['name']}...")
+        client = connect_ssh_server(
+            selected_server['host'],
+            selected_server['port'],
+            selected_server['username'],
+            selected_server['password']
+        )
+        if client:
+            handle_server_commands(client, selected_server, width)
+    else:
+        print("Invalid server selection")
+        return None
 
 def select_and_monitor_server(width):
     """Handle server selection, SSH connection and monitoring"""
@@ -68,48 +70,107 @@ def select_and_monitor_server(width):
     try:
         server_index = int(server_selection) - 1
         selected_server = jsonParser.get_server_by_index(server_index)
-        
-        if selected_server:
-            print(f"Connecting to {selected_server['name']} for monitoring...")
-            client = connect_ssh_server(
-                selected_server['host'],
-                selected_server['port'],
-                selected_server['username'],
-                selected_server['password']
-            )
-            if client:
-                monitor_server(client, selected_server, width)
-        else:
-            print("Invalid server selection")
-            return None
     except ValueError:
+        print("Invalid server selection")
+        return None
+        
+    if selected_server:
+        print(f"Connecting to {selected_server['name']} for monitoring...")
+        client = connect_ssh_server(
+            selected_server['host'],
+            selected_server['port'],
+            selected_server['username'],
+            selected_server['password']
+        )
+        if client:
+            monitor_server(client, selected_server, width)
+    else:
         print("Invalid server selection")
         return None
 
 def monitor_server(client, server_data, width):
     """Monitor server resources"""
     import time
+    cpu_hist = []
+    ram_hist = []
+    blocks = [' ', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+
+    def sparkline(data, max_len):
+        if not data: return ""
+        chars = [blocks[min(7, max(0, int(v / 12.5)))] for v in data[-max_len:]]
+        return "".join(chars)
+
+    def format_bytes(b):
+        if b < 1024: return f"{b:.0f} B"
+        elif b < 1024*1024: return f"{b/1024:.1f} KB"
+        else: return f"{b/1024/1024:.1f} MB"
+
     try:
+        last_rx = 0
+        last_tx = 0
+        last_time = 0
+
         while True:
-            ui.clear_terminal()
-            ui.create_box(width, f"Monitoring {server_data.get('name', 'Server')}", " Ctrl+C to exit─")
+            # Gather all info in single ssh command for speed
+            cmd = (
+                "top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'; "
+                "free -m | awk 'NR==2{printf \"%.1f\\n\", $3*100/$2}'; "
+                "df -h / | awk '$NF==\"/\"{print $5}'; "
+                "cat /proc/net/dev | grep -v 'lo:' | awk '{rx+=$2; tx+=$10} END {print rx\" \"tx}'; "
+                "ps aux --sort=-%cpu | head -n 4 | tail -n 3 | awk '{print $11\" \"$3}'"
+            )
+            stdin, stdout, stderr = client.exec_command(cmd)
+            out = stdout.read().decode().strip().split('\n')
             
-            # Get CPU usage
-            stdin, stdout, stderr = client.exec_command("top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1\"%\"}'")
-            cpu_usage = stdout.read().decode().strip()
-            
-            # Get RAM usage
-            stdin, stdout, stderr = client.exec_command("free -m | awk 'NR==2{printf \"%.2f%%\", $3*100/$2 }'")
-            ram_usage = stdout.read().decode().strip()
-            
-            # Get Disk usage
-            stdin, stdout, stderr = client.exec_command("df -h / | awk '$NF==\"/\"{printf \"%s\", $5}'")
-            disk_usage = stdout.read().decode().strip()
-            
-            ui.new_column(width, f" CPU Usage:  {cpu_usage}", "")
-            ui.new_column(width, f" RAM Usage:  {ram_usage}", "")
-            ui.new_column(width, f" Disk Usage: {disk_usage}", "")
-            ui.close_box(width)
+            if len(out) >= 4:
+                try:
+                    cpu_val = float(out[0].strip() or 0)
+                    ram_val = float(out[1].strip() or 0)
+                    disk_val = out[2].strip()
+                    net_vals = out[3].strip().split()
+                    if len(net_vals) == 2:
+                        current_rx, current_tx = float(net_vals[0]), float(net_vals[1])
+                    else:
+                        current_rx, current_tx = 0, 0
+
+                    top_procs = out[4:]
+
+                    t = time.time()
+                    if last_time > 0:
+                        dt = t - last_time
+                        rx_speed = (current_rx - last_rx) / dt
+                        tx_speed = (current_tx - last_tx) / dt
+                    else:
+                        rx_speed, tx_speed = 0, 0
+                    last_rx, last_tx, last_time = current_rx, current_tx, t
+
+                    cpu_hist.append(cpu_val)
+                    ram_hist.append(ram_val)
+                    
+                    max_graph_width = max(10, width - 25)
+                    if len(cpu_hist) > max_graph_width: cpu_hist.pop(0)
+                    if len(ram_hist) > max_graph_width: ram_hist.pop(0)
+
+                    ui.clear_terminal()
+                    ui.create_box(width, f"Monitoring {server_data.get('name', 'Server')}", " Ctrl+C to exit─")
+                    
+                    ui.new_column(width, f" CPU {cpu_val:5.1f}% [{sparkline(cpu_hist, max_graph_width):<{max_graph_width}}]", "")
+                    ui.new_column(width, f" RAM {ram_val:5.1f}% [{sparkline(ram_hist, max_graph_width):<{max_graph_width}}]", "")
+                    
+                    ui.new_column(width, f" Disk Usage: {disk_val}", "")
+                    ui.new_column(width, f" Network:    RX: {format_bytes(rx_speed)}/s | TX: {format_bytes(tx_speed)}/s", "")
+                    
+                    ui.new_column(width, " Top 3 Resource Users:", "")
+                    for p in top_procs:
+                        parts = p.split()
+                        if len(parts) >= 2:
+                            name = os.path.basename(parts[0])
+                            if len(name) > 30: name = name[:27] + "..."
+                            ui.new_column(width, f"   {name:<30} {parts[1]}% CPU", "")
+
+                    ui.close_box(width)
+                except ValueError:
+                    pass
             
             time.sleep(2)
     except KeyboardInterrupt:
