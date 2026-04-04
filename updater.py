@@ -5,7 +5,7 @@ from tkinter import messagebox
 import webbrowser
 
 # Current version of Thelp
-VERSION = "v1.0.0"
+VERSION = "v1.1.0"
 
 def check_for_updates():
     if os.getenv("CHECK_UPDATES", "true").lower() == "false":
