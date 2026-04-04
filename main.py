@@ -6,6 +6,7 @@ import jsonParser
 import sshManager
 import argparse
 import sys
+import updater
 
 dotenv.load_dotenv()
 width = int(os.getenv("WIDTH") or 80)
@@ -16,9 +17,12 @@ parser.add_argument("--gui", action="store_true", help="Launch the Graphical Use
 args = parser.parse_args()
 
 if args.gui:
+    updater.check_for_updates()
     import gui
     gui.launch()
     sys.exit(0)
+
+updater.check_for_updates()
 
 if args.server:
     server_data = jsonParser.get_server_by_name_or_key(args.server)

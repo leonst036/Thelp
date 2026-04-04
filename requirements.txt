@@ -8,3 +8,4 @@ paramiko==4.0.0
 pycparser==3.0
 PyNaCl==1.6.2
 python-dotenv==1.2.2
+requests==2.31.0
