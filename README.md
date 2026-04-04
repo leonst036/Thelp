@@ -181,4 +181,5 @@ All dependencies are listed in `requirements.txt` and will be installed with `pi
 - Server monitoring capabilities
 - Command history tracking
 - Category sorting of commands
+- Full SSH commander
 ## More Features soon
